@@ -30,7 +30,8 @@ model Review {
   id                String   @id @default(uuid())
   coursename        String
   coursedescription String
-  courseimage       String
+  courseimage       String?
+  category String
   rating            Rating[]
 
   userId String
