@@ -23,11 +23,12 @@ import {
 } from "../ui/select";
 import { Textarea } from "../ui/textarea";
 import { useFormState } from "react-dom";
+import { useState } from "react";
 
 export default function ReviewForm() {
   const initalState: State = { message: "", status: undefined };
   const [state, formAction] = useFormState(PostReview, initalState);
-  return (
+  const [images, setImages] = useState<null | string[]>(null);  return (
     <form action={formAction}>
       <CardHeader>
         <CardTitle>
@@ -91,10 +92,14 @@ export default function ReviewForm() {
 
         <div className="flex flex-col gap-y-2">
         <Label htmlFor="rating">Rating</Label>
-
           <Card>
             <StarRating/>
           </Card>
+        </div>
+
+        <div className="flex flex-col gap-y-2">
+          <Label htmlFor="image">Images</Label>
+          
         </div>
       </CardContent>
       <CardFooter>

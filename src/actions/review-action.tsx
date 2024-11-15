@@ -76,3 +76,49 @@ export async function PostReview(prevState: any, formData: FormData) {
 
   return redirect("/reviews")
 }
+
+export async function GetReviews() {
+  const [reviews, avgRatings] = await prisma.$transaction([
+    prisma.review.findMany({
+      select: {
+        id: true,
+        coursename: true,
+        coursedescription: true,
+        category: true,
+        user: {
+          select: {
+            firstname: true,
+            lastname: true,
+          },
+        },
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+    prisma.rating.groupBy({
+      by: ['reviewId'],
+      _avg: {
+        ratingValue: true,
+      },
+      orderBy: {
+        reviewId: 'asc',
+      },
+    }),
+  ]);
+
+  const reviewsWithAvgRating = reviews.map((review) => {
+    const avgRatingEntry = avgRatings.find((r) => r.reviewId === review.id);
+    const avgRating = avgRatingEntry?._avg?.ratingValue ?? 0;
+  
+    return {
+      ...review,
+      averageRating: avgRating,
+    };
+  });
+  
+  return reviewsWithAvgRating;
+  
+}
+
