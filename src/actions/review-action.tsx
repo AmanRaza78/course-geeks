@@ -20,7 +20,7 @@ const PostReviewSchema = z.object({
     .min(3, { message: "Description is too short (min 3 characters)" })
     .max(2500, { message: "Description is too big" }),
   category: z.string().min(1, { message: "Category is required" }),
-
+  image: z.string().min(1, { message: "Image is required" }),
   rating: z
     .number()
     .min(1, { message: "Rating is required" })
@@ -40,6 +40,7 @@ export async function PostReview(prevState: any, formData: FormData) {
     description: formData.get("description"),
     category: formData.get("category"),
     rating: Number(formData.get("rating")),
+    image: formData.get("image"),
   });
 
   if (!parsedData.success) {
@@ -59,6 +60,7 @@ export async function PostReview(prevState: any, formData: FormData) {
         coursedescription: parsedData.data.description,
         category: parsedData.data.category,
         userId: user.id,
+        courseimage: parsedData.data.image,
       },
     });
 
@@ -74,9 +76,25 @@ export async function PostReview(prevState: any, formData: FormData) {
   return redirect("/reviews");
 }
 
-export async function GetReviews() {
-  const [reviews, avgRatings] = await prisma.$transaction([
+export async function GetReviews(searchParams: Record<string, string>) {
+  const { page, query } = searchParams;
+
+  const filters: any = {};
+  if (query) {
+    filters.OR = [
+      { category: { contains: query, mode: "insensitive" } },
+      { coursename: { contains: query, mode: "insensitive" } },
+    ];
+  }
+
+  const [count, reviews, avgRatings] = await prisma.$transaction([
+    prisma.review.count({
+      where: filters,
+    }),
     prisma.review.findMany({
+      where: filters,
+      take: 10,
+      skip: page ? (Number(page) - 1) * 10 : 0,
       select: {
         id: true,
         coursename: true,
@@ -115,7 +133,7 @@ export async function GetReviews() {
     };
   });
 
-  return reviewsWithAvgRating;
+  return {count,reviewsWithAvgRating};
 }
 
 export async function GetReview(reviewId: string) {
@@ -125,16 +143,42 @@ export async function GetReview(reviewId: string) {
     return redirect("/api/auth/login");
   }
 
-  const review = await prisma.review.findUnique({
-    where: {
-      id: reviewId,
-    },
-    include: {
-      user: true,
-    },
-  });
+  const [review, averageRating] = await prisma.$transaction([
+    prisma.review.findUnique({
+      where: {
+        id: reviewId,
+      },
+      select: {
+        id: true,
+        coursename: true,
+        coursedescription: true,
+        category: true,
+        createdAt: true,
+        user: {
+          select: {
+            firstname: true,
+            lastname: true,
+            profilepic: true,
+          },
+        },
+      },
+    }),
+    prisma.rating.aggregate({
+      where: {
+        reviewId: reviewId,
+      },
+      _avg: {
+        ratingValue: true,
+      },
+    }),
+  ]);
 
-  return review;
+  const reviewWithAvgRating = {
+    ...review,
+    averageRating: averageRating._avg.ratingValue,
+  };
+
+  return reviewWithAvgRating;
 }
 
 export async function PostRating(formData: FormData) {
