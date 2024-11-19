@@ -1,41 +1,51 @@
 import { GetReview } from "@/actions/review-action";
 import RatingForm from "@/components/forms/rating-form";
+import StarRating from "@/components/star-rating";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "lucide-react";
-
 export default async function Review({ params }: { params: { id: string } }) {
   const reviewId = params.id;
   const review = await GetReview(reviewId);
 
-  if (!review || review === null || review.id === null) {
+  if (
+    !review ||
+    review === null ||
+    review.id === null ||
+    review.id === undefined ||
+    review.courseimage === null
+  ) {
     return <div>No Review Found</div>;
   }
-
-  console.log(review.user?.profilepic);
 
   return (
     <div>
       <div className="container mx-auto px-4 py-8">
-        <Card className="mb-8">image will come here.</Card>
-
-        <Card>
+        <Card className="mb-8 p-2">
+          <img
+            src={review?.courseimage?.replace(/^"|"$/g, "")}
+            className="h-[450px] w-full"
+            alt="course image"
+          />
+        </Card>
+        <Card className="mb-8">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <img src={review?.user?.profilepic} alt={review?.user?.firstname} className="rounded-full w-12 h-12"/>
+                <img
+                  src={review?.user?.profilepic}
+                  alt={review?.user?.firstname}
+                  className="rounded-full w-12 h-12"
+                />
                 <div>
                   <CardTitle className="text-lg">
                     {review?.user?.firstname} {review?.user?.lastname}
                   </CardTitle>
                   <div className="flex items-center gap-2">
-                    <p className="text-secondary-foreground">Avg Rating {review.averageRating}</p>
+                    <p className="text-secondary-foreground">
+                      Avg Rating {review.averageRating}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -61,6 +71,7 @@ export default async function Review({ params }: { params: { id: string } }) {
             </div>
           </CardContent>
         </Card>
+        <RatingForm reviewId={review.id}/>
       </div>
     </div>
   );

@@ -30,7 +30,7 @@ import { toast } from "sonner";
 export default function ReviewForm() {
   const initalState: State = { message: "", status: undefined };
   const [state, formAction] = useFormState(PostReview, initalState);
-  const [images, setImages] = useState<null | string[]>(null);
+  const [images, setImages] = useState<null | string>(null);
 
   useEffect(() => {
     if (state.status === "success") {
@@ -116,6 +116,56 @@ export default function ReviewForm() {
         </div>
 
         <div className="flex flex-col gap-y-2">
+          <Label htmlFor="provider">Course Provider</Label>
+          <Select name="provider">
+            <SelectTrigger className="w-full" id="color">
+              <SelectValue placeholder="Select Course Provider" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Providers</SelectLabel>
+                <SelectItem value="coursera">
+                  Coursera
+                </SelectItem>
+                <SelectItem value="udemy">
+                  Udemy
+                </SelectItem>
+                <SelectItem value="edureka">
+                  Edureka
+                </SelectItem>
+                <SelectItem value="coding-ninjas">
+                  Coding Ninjas
+                </SelectItem>
+                <SelectItem value="internshala">Intenshala</SelectItem>
+                <SelectItem value="freecodecamp">Freecodecamp</SelectItem>
+                <SelectItem value="codecademy">
+                  Codecademy
+                </SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          {state?.errors?.["provider"]?.[0] && (
+            <p className="text-destructive">
+              {state?.errors?.["provider"]?.[0]}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-y-2">
+          <Label htmlFor="price">Price</Label>
+          <Input
+            id="price"
+            name="price"
+            type="number"
+            placeholder="Enter Price in Rupees"
+            minLength={3}
+          />
+          {state?.errors?.["price"]?.[0] && (
+            <p className="text-destructive">{state?.errors?.["price"]?.[0]}</p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-y-2">
           <Label htmlFor="rating">Rating</Label>
           <Card>
             <StarRating />
@@ -131,7 +181,7 @@ export default function ReviewForm() {
           <UploadDropzone
             endpoint="imageUploader"
             onClientUploadComplete={(res) => {
-              setImages(res.map((item) => item.url));
+              setImages(res[0].url);
               toast.success("Your images have been uploaded");
             }}
             onUploadError={(error: Error) => {

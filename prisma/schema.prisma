@@ -32,6 +32,8 @@ model Review {
   coursedescription String
   courseimage       String?
   category String
+  courseprice Int
+  courseprovider String
   rating            Rating[]
 
   userId String

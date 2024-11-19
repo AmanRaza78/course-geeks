@@ -21,10 +21,17 @@ const PostReviewSchema = z.object({
     .max(2500, { message: "Description is too big" }),
   category: z.string().min(1, { message: "Category is required" }),
   image: z.string().min(1, { message: "Image is required" }),
+  price: z.number().min(1, { message: "Price is required" }),
+  provider: z.string().min(1, { message: "Provider is required" }),
   rating: z
     .number()
     .min(1, { message: "Rating is required" })
     .max(5, { message: "Rating is too big" }),
+});
+
+const ratingSchema = z.object({
+  reviewId: z.string().min(1, { message: "ReviewId is required" }),
+  rating: z.number().min(1, { message: "Rating is required" }),
 });
 
 export async function PostReview(prevState: any, formData: FormData) {
@@ -39,6 +46,8 @@ export async function PostReview(prevState: any, formData: FormData) {
     name: formData.get("name"),
     description: formData.get("description"),
     category: formData.get("category"),
+    price: Number(formData.get("price")),
+    provider: formData.get("provider"),
     rating: Number(formData.get("rating")),
     image: formData.get("image"),
   });
@@ -59,6 +68,8 @@ export async function PostReview(prevState: any, formData: FormData) {
         coursename: parsedData.data.name,
         coursedescription: parsedData.data.description,
         category: parsedData.data.category,
+        courseprice: parsedData.data.price,
+        courseprovider: parsedData.data.provider,
         userId: user.id,
         courseimage: parsedData.data.image,
       },
@@ -77,9 +88,14 @@ export async function PostReview(prevState: any, formData: FormData) {
 }
 
 export async function GetReviews(searchParams: Record<string, string>) {
-  const { page, query } = searchParams;
+  const { page, query, category, courseprovider, courseprice } = searchParams;
 
   const filters: any = {};
+
+  if(category) filters.category = category
+  if(courseprovider) filters.courseprovider = courseprovider
+  if(courseprice) filters.courseprice = courseprice
+
   if (query) {
     filters.OR = [
       { category: { contains: query, mode: "insensitive" } },
@@ -104,9 +120,11 @@ export async function GetReviews(searchParams: Record<string, string>) {
           select: {
             firstname: true,
             lastname: true,
+            profilepic: true,
           },
         },
         createdAt: true,
+        courseprice: true,
       },
       orderBy: {
         createdAt: "desc",
@@ -133,7 +151,7 @@ export async function GetReviews(searchParams: Record<string, string>) {
     };
   });
 
-  return {count,reviewsWithAvgRating};
+  return { count, reviewsWithAvgRating };
 }
 
 export async function GetReview(reviewId: string) {
@@ -154,6 +172,9 @@ export async function GetReview(reviewId: string) {
         coursedescription: true,
         category: true,
         createdAt: true,
+        courseprice: true,
+        courseprovider: true,
+        courseimage: true,
         user: {
           select: {
             firstname: true,
@@ -181,7 +202,7 @@ export async function GetReview(reviewId: string) {
   return reviewWithAvgRating;
 }
 
-export async function PostRating(formData: FormData) {
+export async function PostRating(prevState: any, formData: FormData) {
   const { getUser } = getKindeServerSession();
   const user = await getUser();
 
@@ -189,14 +210,49 @@ export async function PostRating(formData: FormData) {
     return redirect("/api/auth/login");
   }
 
-  const reviewId = formData.get("reviewId") as string;
-  const ratingValue = Number(formData.get("rating")) as number;
+  const parsedData = ratingSchema.safeParse({
+    reviewId: formData.get("reviewId"),
+    rating: Number(formData.get("rating")),
+  });
+
+  if (!parsedData.success) {
+    const state: State = {
+      status: "error",
+      errors: parsedData.error.flatten().fieldErrors,
+      message: "Oops, I think there is a mistake with your inputs.",
+    };
+
+    return state;
+  }
+
+  const rating = await prisma.rating.findUnique({
+    where: {
+      userId_reviewId: {
+        userId: user.id,
+        reviewId: parsedData.data.reviewId,
+      },
+    },
+  });
+
+  if (rating) {
+    const state: State = {
+      status: "error",
+      message: "You have already rated this review",
+    };
+    return state;
+  }
 
   await prisma.rating.create({
     data: {
-      reviewId: reviewId,
+      reviewId: parsedData.data.reviewId,
       userId: user.id,
-      ratingValue: ratingValue,
+      ratingValue: parsedData.data.rating,
     },
   });
+
+  const state: State = {
+    status: "success",
+    message: "Rating submitted successfully",
+  };
+  return state;
 }
