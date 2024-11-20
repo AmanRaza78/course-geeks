@@ -15,15 +15,6 @@ export default function HeroSection(){
                   Discover, review, and choose the best online courses. Your journey to knowledge starts here.
                 </p>
               </div>
-              <div className="w-full max-w-sm space-y-2">
-                <form className="flex space-x-2">
-                  <Input className="max-w-lg flex-1" placeholder="Search courses..." type="text" />
-                  <Button type="submit">
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
-                  </Button>
-                </form>
-              </div>
             </div>
           </div>
         </section>

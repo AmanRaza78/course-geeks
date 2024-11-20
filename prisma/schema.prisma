@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -20,21 +14,23 @@ model User {
   email      String @unique
   profilepic String
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  reviews   Review[]
-  rating    Rating[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  reviews      Review[]
+  rating       Rating[]
+  like        Like[]
 }
 
 model Review {
-  id                String   @id @default(uuid())
+  id                String         @id @default(uuid())
   coursename        String
   coursedescription String
   courseimage       String?
-  category String
-  courseprice Int
-  courseprovider String
+  category          String
+  courseprice       Int
+  courseprovider    String
   rating            Rating[]
+  like Like[]
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
@@ -53,4 +49,21 @@ model Rating {
   createdAt   DateTime @default(now())
 
   @@unique([userId, reviewId])
+}
+
+
+model Like {
+  id       String  @id @default(uuid())
+  reviewId String
+  review   Review  @relation(fields: [reviewId], references: [id])
+  userId   String
+  user     User    @relation(fields: [userId], references: [id])
+  type     LikeType
+
+  createdAt DateTime @default(now())
+}
+
+enum LikeType {
+  LIKE
+  DISLIKE
 }

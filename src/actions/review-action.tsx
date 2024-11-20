@@ -13,6 +13,15 @@ export type State = {
   message?: string | null;
 };
 
+export type LikeState ={
+  status: "error" | "success" | undefined
+  message?: string | null
+
+  likeCount?: number | null
+  dislikeCount?: number | null
+}
+
+
 const PostReviewSchema = z.object({
   name: z.string().min(3, { message: "Name is too short (min 3 characters)" }),
   description: z
@@ -87,14 +96,17 @@ export async function PostReview(prevState: any, formData: FormData) {
   return redirect("/reviews");
 }
 
+import { Prisma } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+
 export async function GetReviews(searchParams: Record<string, string>) {
   const { page, query, category, courseprovider, courseprice } = searchParams;
 
-  const filters: any = {};
+  const filters: Prisma.ReviewWhereInput = {};
 
-  if(category) filters.category = category
-  if(courseprovider) filters.courseprovider = courseprovider
-  if(courseprice) filters.courseprice = courseprice
+  if (category) filters.category = category;
+  if (courseprovider) filters.courseprovider = courseprovider;
+  if (courseprice) filters.courseprice = Number(courseprice);
 
   if (query) {
     filters.OR = [
@@ -103,7 +115,7 @@ export async function GetReviews(searchParams: Record<string, string>) {
     ];
   }
 
-  const [count, reviews, avgRatings] = await prisma.$transaction([
+  const [count, reviews, avgRatings, likeDislikeCounts] = await prisma.$transaction([
     prisma.review.count({
       where: filters,
     }),
@@ -115,6 +127,7 @@ export async function GetReviews(searchParams: Record<string, string>) {
         id: true,
         coursename: true,
         coursedescription: true,
+        courseprovider: true,
         category: true,
         user: {
           select: {
@@ -139,20 +152,50 @@ export async function GetReviews(searchParams: Record<string, string>) {
         reviewId: "asc",
       },
     }),
+    prisma.like.groupBy({
+      by: ["reviewId", "type"],
+      _count: {
+        type: true,
+      },
+      orderBy: {
+        reviewId: "asc",
+      },
+    }),
   ]);
 
-  const reviewsWithAvgRating = reviews.map((review) => {
+  interface LikeDislikeCount {
+    reviewId: string;
+    type: "LIKE" | "DISLIKE";
+    _count: {
+      type: number;
+    };
+  }
+
+  const typedLikeDislikeCounts = likeDislikeCounts as LikeDislikeCount[];
+
+  const reviewsWithDetails = reviews.map((review) => {
     const avgRatingEntry = avgRatings.find((r) => r.reviewId === review.id);
     const avgRating = avgRatingEntry?._avg?.ratingValue ?? 0;
+
+    const likeCount = typedLikeDislikeCounts.find(
+      (ld) => ld.reviewId === review.id && ld.type === "LIKE"
+    )?._count.type ?? 0;
+
+    const dislikeCount = typedLikeDislikeCounts.find(
+      (ld) => ld.reviewId === review.id && ld.type === "DISLIKE"
+    )?._count.type ?? 0;
 
     return {
       ...review,
       averageRating: avgRating,
+      likeCount,
+      dislikeCount,
     };
   });
 
-  return { count, reviewsWithAvgRating };
+  return { count, reviewsWithDetails };
 }
+
 
 export async function GetReview(reviewId: string) {
   const { getUser } = getKindeServerSession();
@@ -256,3 +299,64 @@ export async function PostRating(prevState: any, formData: FormData) {
   };
   return state;
 }
+
+
+
+export async function LikeReview(prevState: any, formData: FormData) {
+  const { getUser } = getKindeServerSession();
+  const user = await getUser();
+
+  if (!user) {
+    return redirect("/api/auth/login");
+  }
+
+  const userId = user.id;
+
+  const reviewId = formData.get("reviewId") as string;
+  const type = formData.get("type") as "LIKE" | "DISLIKE";
+
+  // Check if the user has already liked or disliked this review
+  const existingLike = await prisma.like.findFirst({
+    where: { reviewId, userId },
+  });
+
+  if (existingLike) {
+    if (existingLike.type === type) {
+      // If the same action is repeated, remove the like/dislike
+      await prisma.like.delete({ where: { id: existingLike.id } });
+    } else {
+      // If the user switches from like to dislike or vice versa, update the type
+      await prisma.like.update({
+        where: { id: existingLike.id },
+        data: { type },
+      });
+    }
+  } else {
+    // Add a new like/dislike entry
+    await prisma.like.create({
+      data: {
+        reviewId,
+        userId,
+        type,
+      },
+    });
+  }
+
+  // Optional: Return updated like/dislike counts for the review
+  const likesCount = await prisma.like.count({
+    where: { reviewId, type: "LIKE" },
+  });
+  const dislikesCount = await prisma.like.count({
+    where: { reviewId, type: "DISLIKE" },
+  });
+
+  const state: LikeState = {
+    status: "success",
+    message: "Submitted successfully",
+    likeCount: likesCount,
+    dislikeCount: dislikesCount
+
+  };
+  return state;
+}
+

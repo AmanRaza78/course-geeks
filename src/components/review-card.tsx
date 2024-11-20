@@ -1,3 +1,4 @@
+"use client";
 import { Star, ThumbsUp, ThumbsDown, Bookmark } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,10 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "./ui/badge";
 import Link from "next/link";
+import { LikeReview, type LikeState } from "@/actions/review-action";
+import { useEffect, useState } from "react";
+import { useFormState } from "react-dom";
+import { toast } from "sonner";
 
 interface ReviewCardProps {
   reviewId: string;
@@ -20,6 +25,9 @@ interface ReviewCardProps {
   courseName: string;
   courseCategory: string;
   price: number;
+  initialLikes: number;
+  initialDislikes: number;
+  courseprovider: string;
 }
 
 export default function ReviewCard({
@@ -30,8 +38,11 @@ export default function ReviewCard({
   reviewText,
   courseName,
   courseCategory,
+  courseprovider,
   price,
   reviewId,
+  initialDislikes,
+  initialLikes,
 }: ReviewCardProps) {
   const maxRating = 5;
 
@@ -54,6 +65,24 @@ export default function ReviewCard({
       return <Star key={index} className="w-5 h-5 text-gray-300" />;
     }
   };
+
+  const [likesCount, setLikesCount] = useState<number | null | undefined>(initialLikes);
+  const [dislikesCount, setDislikesCount] = useState<number | null | undefined>(initialDislikes);
+  const initalState: LikeState = { message: "", status: undefined };
+
+  const [state, formAction] = useFormState(LikeReview, initalState);
+  const [type, setType] = useState("");
+
+  useEffect(() => {
+    if (state.status === "success") {
+      setLikesCount(state.likeCount);
+      setDislikesCount(state.dislikeCount)
+      toast.success(state.message);
+    } else if (state.status === "error") {
+      toast.error("Opps!! Something Went Wrong");
+    }
+  }, [state]);
+
 
   return (
     <Card className="w-full max-w-2xl">
@@ -109,27 +138,35 @@ export default function ReviewCard({
         </div>
       </CardContent>
       <CardFooter className="flex justify-between items-center">
-        <div className="text-sm text-muted-foreground">
-          Was this review helpful?
-        </div>
-        <div className="flex gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <ThumbsUp className="w-4 h-4" />
-            <span>Yes {50}</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <ThumbsDown className="w-4 h-4" />
-            <span>No {60}</span>
-          </Button>
-        </div>
+        <form action={formAction}>
+          <div className="text-sm text-muted-foreground">
+            Was this review helpful?
+          </div>
+          <div className="flex gap-4">
+            <input type="hidden" name="reviewId" value={reviewId} />
+            <input type="hidden" name="type" value={type} />
+            <Button
+              variant="outline"
+              onClick={() => setType("LIKE")}
+              type="submit"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <ThumbsUp className="w-4 h-4" />
+              <span>Yes {likesCount}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setType("DISLIKE")}
+              type="submit"
+              className="flex items-center gap-2"
+            >
+              <ThumbsDown className="w-4 h-4" />
+              <span>No {dislikesCount}</span>
+            </Button>
+          </div>
+        </form>
       </CardFooter>
     </Card>
   );
