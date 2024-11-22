@@ -1,10 +1,10 @@
 import { GetReview } from "@/actions/review-action";
 import RatingForm from "@/components/forms/rating-form";
-import StarRating from "@/components/star-rating";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "lucide-react";
+
 export default async function Review({ params }: { params: { id: string } }) {
   const reviewId = params.id;
   const review = await GetReview(reviewId);
@@ -13,15 +13,14 @@ export default async function Review({ params }: { params: { id: string } }) {
     !review ||
     review === null ||
     review.id === null ||
-    review.id === undefined ||
-    review.courseimage === null
+    review.id === undefined
   ) {
     return <div>No Review Found</div>;
   }
 
   return (
     <div>
-      <div className="container mx-auto px-4 py-8">
+      {review.courseimage && (
         <Card className="mb-8 p-2">
           <img
             src={review?.courseimage?.replace(/^"|"$/g, "")}
@@ -29,6 +28,8 @@ export default async function Review({ params }: { params: { id: string } }) {
             alt="course image"
           />
         </Card>
+      )}
+      <div className="container mx-auto px-4 py-8">
         <Card className="mb-8">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -71,7 +72,7 @@ export default async function Review({ params }: { params: { id: string } }) {
             </div>
           </CardContent>
         </Card>
-        <RatingForm reviewId={review.id}/>
+        <RatingForm reviewId={review.id} />
       </div>
     </div>
   );

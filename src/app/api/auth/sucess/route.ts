@@ -1,9 +1,3 @@
-//Register-
-// 1. Getting the user from the request
-// 2. If the user exists or not in our database
-// 3. If the user exists, we will log him in
-// 4. If the user doesn't exist, we will create him
-
 import prisma from "@/lib/db";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { NextResponse } from "next/server";

@@ -177,7 +177,7 @@ export default function ReviewForm() {
 
         <div className="flex flex-col gap-y-2">
           <input type="hidden" name="image" value={JSON.stringify(images)} />
-          <Label htmlFor="image">Images</Label>
+          <Label htmlFor="image">Course Certification</Label>
           <UploadDropzone
             endpoint="imageUploader"
             onClientUploadComplete={(res) => {

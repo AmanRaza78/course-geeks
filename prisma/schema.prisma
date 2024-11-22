@@ -14,15 +14,16 @@ model User {
   email      String @unique
   profilepic String
 
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  reviews      Review[]
-  rating       Rating[]
-  like        Like[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  reviews   Review[]
+  rating    Rating[]
+  like      Like[]
+  comment   Comment[]
 }
 
 model Review {
-  id                String         @id @default(uuid())
+  id                String    @id @default(uuid())
   coursename        String
   coursedescription String
   courseimage       String?
@@ -30,7 +31,8 @@ model Review {
   courseprice       Int
   courseprovider    String
   rating            Rating[]
-  like Like[]
+  like              Like[]
+  comment           Comment[]
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
@@ -51,16 +53,27 @@ model Rating {
   @@unique([userId, reviewId])
 }
 
-
 model Like {
-  id       String  @id @default(uuid())
+  id       String   @id @default(uuid())
   reviewId String
-  review   Review  @relation(fields: [reviewId], references: [id])
+  review   Review   @relation(fields: [reviewId], references: [id])
   userId   String
-  user     User    @relation(fields: [userId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
   type     LikeType
 
   createdAt DateTime @default(now())
+}
+
+model Comment {
+  id       String   @id @default(uuid())
+  text     String
+  createAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  reviewId String
+  review   Review @relation(fields: [reviewId], references: [id])
 }
 
 enum LikeType {

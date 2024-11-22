@@ -2,7 +2,9 @@
 
 import prisma from "@/lib/db";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+
 import { z } from "zod";
 
 export type State = {
@@ -29,7 +31,7 @@ const PostReviewSchema = z.object({
     .min(3, { message: "Description is too short (min 3 characters)" })
     .max(2500, { message: "Description is too big" }),
   category: z.string().min(1, { message: "Category is required" }),
-  image: z.string().min(1, { message: "Image is required" }),
+  image: z.string().optional(),
   price: z.number().min(1, { message: "Price is required" }),
   provider: z.string().min(1, { message: "Provider is required" }),
   rating: z
@@ -96,13 +98,11 @@ export async function PostReview(prevState: any, formData: FormData) {
   return redirect("/reviews");
 }
 
-import { Prisma } from "@prisma/client";
-import { revalidatePath } from "next/cache";
 
 export async function GetReviews(searchParams: Record<string, string>) {
   const { page, query, category, courseprovider, courseprice } = searchParams;
 
-  const filters: Prisma.ReviewWhereInput = {};
+  const filters:any = {}
 
   if (category) filters.category = category;
   if (courseprovider) filters.courseprovider = courseprovider;
@@ -360,3 +360,24 @@ export async function LikeReview(prevState: any, formData: FormData) {
   return state;
 }
 
+export async function createComment(formData:FormData){
+  const {getUser} = getKindeServerSession()
+  const user = await getUser()
+
+  if(!user){
+    return redirect('/api/auth/login')
+  }
+
+  const comment = formData.get("comment") as string
+  const reviewId = formData.get("reviewId") as string
+
+  const data = await prisma.comment.create({
+    data:{
+      text:comment,
+      userId: user.id,
+      reviewId:reviewId
+    }
+  })
+
+  revalidatePath(`/review/${reviewId}`)
+}
