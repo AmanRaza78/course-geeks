@@ -431,6 +431,23 @@ export async function PostReport(prevState: any, formData: FormData) {
     return state;
   }
 
+  const report = await prisma.report.findUnique({
+    where: {
+      userId_reviewId: {
+        userId: user.id,
+        reviewId: parsedData.data.reviewId,
+      },
+    },
+  });
+
+  if (report) {
+    const state: ReportState = {
+      status: "error",
+      message: "You have already reported this review",
+    };
+    return state;
+  }
+
   await prisma.report.create({
     data: {
       reviewId: parsedData.data.reviewId,

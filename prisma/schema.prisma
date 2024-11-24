@@ -93,4 +93,6 @@ model Report {
   review   Review @relation(fields: [reviewId], references: [id])
 
   createdAt DateTime @default(now())
+
+  @@unique([userId, reviewId])
 }
