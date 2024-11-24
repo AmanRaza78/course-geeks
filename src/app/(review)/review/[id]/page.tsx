@@ -1,4 +1,5 @@
 import { GetReview } from "@/actions/review-action";
+import CommentForm from "@/components/forms/comment-form";
 import RatingForm from "@/components/forms/rating-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,17 +19,20 @@ export default async function Review({ params }: { params: { id: string } }) {
     return <div>No Review Found</div>;
   }
 
+  console.log(review.courseimage);
+
   return (
     <div>
-      {review.courseimage && (
+      {review.courseimage && review.courseimage !== "null" && (
         <Card className="mb-8 p-2">
           <img
-            src={review?.courseimage?.replace(/^"|"$/g, "")}
+            src={review.courseimage.replace(/^"|"$/g, "")}
             className="h-[450px] w-full"
-            alt="course image"
+            alt="image"
           />
         </Card>
       )}
+
       <div className="container mx-auto px-4 py-8">
         <Card className="mb-8">
           <CardHeader>
@@ -73,6 +77,24 @@ export default async function Review({ params }: { params: { id: string } }) {
           </CardContent>
         </Card>
         <RatingForm reviewId={review.id} />
+
+        <Card className="p-4 flex flex-col gap-y-4">
+        <CommentForm reviewId={review.id} />
+        <Separator/>
+        {review?.comment?.map((item) => (
+                <div key={item.id} className="flex flex-col">
+                  <div className="flex items-center gap-x-3">
+                    <h3 className="text-sm font-medium">
+                      {item.user.firstname}
+                    </h3>
+                  </div>
+
+                  <p className="ml-10 text-secondary-foreground text-sm tracking-wide">
+                    {item.text}
+                  </p>
+                </div>
+              ))}
+        </Card>
       </div>
     </div>
   );

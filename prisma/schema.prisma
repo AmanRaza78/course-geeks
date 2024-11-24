@@ -20,6 +20,7 @@ model User {
   rating    Rating[]
   like      Like[]
   comment   Comment[]
+  reports   Report[]
 }
 
 model Review {
@@ -33,6 +34,7 @@ model Review {
   rating            Rating[]
   like              Like[]
   comment           Comment[]
+  reports           Report[]
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
@@ -79,4 +81,15 @@ model Comment {
 enum LikeType {
   LIKE
   DISLIKE
+}
+
+model Report {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  reviewId String
+  review   Review @relation(fields: [reviewId], references: [id])
+
+  createdAt DateTime @default(now())
 }

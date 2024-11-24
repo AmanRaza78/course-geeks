@@ -218,6 +218,20 @@ export async function GetReview(reviewId: string) {
         courseprice: true,
         courseprovider: true,
         courseimage: true,
+        comment:{
+          orderBy:{
+            createAt:"desc"
+          },
+          select: {
+            id: true,
+            text: true,
+            user: {
+              select: {
+                firstname: true,
+              },
+            },
+          },
+        },
         user: {
           select: {
             firstname: true,
