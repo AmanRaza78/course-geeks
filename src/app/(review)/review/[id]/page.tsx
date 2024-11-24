@@ -1,7 +1,7 @@
 import { GetReview } from "@/actions/review-action";
 import CommentForm from "@/components/forms/comment-form";
 import RatingForm from "@/components/forms/rating-form";
-import { Button } from "@/components/ui/button";
+import { ReportForm } from "@/components/forms/report-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "lucide-react";
@@ -72,28 +72,26 @@ export default async function Review({ params }: { params: { id: string } }) {
             </p>
             <Separator className="my-4" />
             <div className="flex justify-between items-center">
-              <Button variant="outline">Report abuse</Button>
+              <ReportForm reviewId={review.id} />
             </div>
           </CardContent>
         </Card>
         <RatingForm reviewId={review.id} />
 
         <Card className="p-4 flex flex-col gap-y-4">
-        <CommentForm reviewId={review.id} />
-        <Separator/>
-        {review?.comment?.map((item) => (
-                <div key={item.id} className="flex flex-col">
-                  <div className="flex items-center gap-x-3">
-                    <h3 className="text-sm font-medium">
-                      {item.user.firstname}
-                    </h3>
-                  </div>
+          <CommentForm reviewId={review.id} />
+          <Separator />
+          {review?.comment?.map((item) => (
+            <div key={item.id} className="flex flex-col">
+              <div className="flex items-center gap-x-3">
+                <h3 className="text-sm font-medium">{item.user.firstname}</h3>
+              </div>
 
-                  <p className="ml-10 text-secondary-foreground text-sm tracking-wide">
-                    {item.text}
-                  </p>
-                </div>
-              ))}
+              <p className="ml-10 text-secondary-foreground text-sm tracking-wide">
+                {item.text}
+              </p>
+            </div>
+          ))}
         </Card>
       </div>
     </div>

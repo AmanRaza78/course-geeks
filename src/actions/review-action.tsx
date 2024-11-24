@@ -15,14 +15,21 @@ export type State = {
   message?: string | null;
 };
 
-export type LikeState ={
-  status: "error" | "success" | undefined
-  message?: string | null
+export type LikeState = {
+  status: "error" | "success" | undefined;
+  message?: string | null;
 
-  likeCount?: number | null
-  dislikeCount?: number | null
-}
+  likeCount?: number | null;
+  dislikeCount?: number | null;
+};
 
+export type ReportState = {
+  status: "error" | "success" | undefined;
+  errors?: {
+    [key: string]: string[];
+  };
+  message?: string | null;
+};
 
 const PostReviewSchema = z.object({
   name: z.string().min(3, { message: "Name is too short (min 3 characters)" }),
@@ -43,6 +50,14 @@ const PostReviewSchema = z.object({
 const ratingSchema = z.object({
   reviewId: z.string().min(1, { message: "ReviewId is required" }),
   rating: z.number().min(1, { message: "Rating is required" }),
+});
+
+const reportSchema = z.object({
+  reviewId: z.string().min(1, { message: "ReviewId is required" }),
+  reason: z
+    .string()
+    .min(5, { message: "Reason is too short (min 5 characters)" })
+    .max(255, { message: "Reason is too long" }),
 });
 
 export async function PostReview(prevState: any, formData: FormData) {
@@ -98,11 +113,10 @@ export async function PostReview(prevState: any, formData: FormData) {
   return redirect("/reviews");
 }
 
-
 export async function GetReviews(searchParams: Record<string, string>) {
   const { page, query, category, courseprovider, courseprice } = searchParams;
 
-  const filters:any = {}
+  const filters: any = {};
 
   if (category) filters.category = category;
   if (courseprovider) filters.courseprovider = courseprovider;
@@ -115,53 +129,54 @@ export async function GetReviews(searchParams: Record<string, string>) {
     ];
   }
 
-  const [count, reviews, avgRatings, likeDislikeCounts] = await prisma.$transaction([
-    prisma.review.count({
-      where: filters,
-    }),
-    prisma.review.findMany({
-      where: filters,
-      take: 10,
-      skip: page ? (Number(page) - 1) * 10 : 0,
-      select: {
-        id: true,
-        coursename: true,
-        coursedescription: true,
-        courseprovider: true,
-        category: true,
-        user: {
-          select: {
-            firstname: true,
-            lastname: true,
-            profilepic: true,
+  const [count, reviews, avgRatings, likeDislikeCounts] =
+    await prisma.$transaction([
+      prisma.review.count({
+        where: filters,
+      }),
+      prisma.review.findMany({
+        where: filters,
+        take: 10,
+        skip: page ? (Number(page) - 1) * 10 : 0,
+        select: {
+          id: true,
+          coursename: true,
+          coursedescription: true,
+          courseprovider: true,
+          category: true,
+          user: {
+            select: {
+              firstname: true,
+              lastname: true,
+              profilepic: true,
+            },
           },
+          createdAt: true,
+          courseprice: true,
         },
-        createdAt: true,
-        courseprice: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    }),
-    prisma.rating.groupBy({
-      by: ["reviewId"],
-      _avg: {
-        ratingValue: true,
-      },
-      orderBy: {
-        reviewId: "asc",
-      },
-    }),
-    prisma.like.groupBy({
-      by: ["reviewId", "type"],
-      _count: {
-        type: true,
-      },
-      orderBy: {
-        reviewId: "asc",
-      },
-    }),
-  ]);
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+      prisma.rating.groupBy({
+        by: ["reviewId"],
+        _avg: {
+          ratingValue: true,
+        },
+        orderBy: {
+          reviewId: "asc",
+        },
+      }),
+      prisma.like.groupBy({
+        by: ["reviewId", "type"],
+        _count: {
+          type: true,
+        },
+        orderBy: {
+          reviewId: "asc",
+        },
+      }),
+    ]);
 
   interface LikeDislikeCount {
     reviewId: string;
@@ -177,13 +192,15 @@ export async function GetReviews(searchParams: Record<string, string>) {
     const avgRatingEntry = avgRatings.find((r) => r.reviewId === review.id);
     const avgRating = avgRatingEntry?._avg?.ratingValue ?? 0;
 
-    const likeCount = typedLikeDislikeCounts.find(
-      (ld) => ld.reviewId === review.id && ld.type === "LIKE"
-    )?._count.type ?? 0;
+    const likeCount =
+      typedLikeDislikeCounts.find(
+        (ld) => ld.reviewId === review.id && ld.type === "LIKE"
+      )?._count.type ?? 0;
 
-    const dislikeCount = typedLikeDislikeCounts.find(
-      (ld) => ld.reviewId === review.id && ld.type === "DISLIKE"
-    )?._count.type ?? 0;
+    const dislikeCount =
+      typedLikeDislikeCounts.find(
+        (ld) => ld.reviewId === review.id && ld.type === "DISLIKE"
+      )?._count.type ?? 0;
 
     return {
       ...review,
@@ -195,7 +212,6 @@ export async function GetReviews(searchParams: Record<string, string>) {
 
   return { count, reviewsWithDetails };
 }
-
 
 export async function GetReview(reviewId: string) {
   const { getUser } = getKindeServerSession();
@@ -218,9 +234,9 @@ export async function GetReview(reviewId: string) {
         courseprice: true,
         courseprovider: true,
         courseimage: true,
-        comment:{
-          orderBy:{
-            createAt:"desc"
+        comment: {
+          orderBy: {
+            createAt: "desc",
           },
           select: {
             id: true,
@@ -314,8 +330,6 @@ export async function PostRating(prevState: any, formData: FormData) {
   return state;
 }
 
-
-
 export async function LikeReview(prevState: any, formData: FormData) {
   const { getUser } = getKindeServerSession();
   const user = await getUser();
@@ -368,30 +382,66 @@ export async function LikeReview(prevState: any, formData: FormData) {
     status: "success",
     message: "Submitted successfully",
     likeCount: likesCount,
-    dislikeCount: dislikesCount
-
+    dislikeCount: dislikesCount,
   };
   return state;
 }
 
-export async function createComment(formData:FormData){
-  const {getUser} = getKindeServerSession()
-  const user = await getUser()
+export async function createComment(formData: FormData) {
+  const { getUser } = getKindeServerSession();
+  const user = await getUser();
 
-  if(!user){
-    return redirect('/api/auth/login')
+  if (!user) {
+    return redirect("/api/auth/login");
   }
 
-  const comment = formData.get("comment") as string
-  const reviewId = formData.get("reviewId") as string
+  const comment = formData.get("comment") as string;
+  const reviewId = formData.get("reviewId") as string;
 
   const data = await prisma.comment.create({
-    data:{
-      text:comment,
+    data: {
+      text: comment,
       userId: user.id,
-      reviewId:reviewId
-    }
-  })
+      reviewId: reviewId,
+    },
+  });
 
-  revalidatePath(`/review/${reviewId}`)
+  revalidatePath(`/review/${reviewId}`);
+}
+
+export async function PostReport(prevState: any, formData: FormData) {
+  const { getUser } = getKindeServerSession();
+  const user = await getUser();
+
+  if (!user) {
+    return redirect("/api/auth/login");
+  }
+
+  const parsedData = reportSchema.safeParse({
+    reviewId: formData.get("reviewId"),
+    reason: formData.get("reason"),
+  });
+
+  if (!parsedData.success) {
+    const state: ReportState = {
+      status: "error",
+      errors: parsedData.error.flatten().fieldErrors,
+      message: "Oops, I think there is a mistake with your inputs.",
+    };
+    return state;
+  }
+
+  await prisma.report.create({
+    data: {
+      reviewId: parsedData.data.reviewId,
+      userId: user.id,
+      reason: parsedData.data.reason,
+    },
+  });
+
+  const state: ReportState = {
+    status: "success",
+    message: "Your Report is submitted successfully",
+  };
+  return state;
 }

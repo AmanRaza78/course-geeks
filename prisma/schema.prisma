@@ -84,7 +84,8 @@ enum LikeType {
 }
 
 model Report {
-  id     String @id @default(cuid())
+  id     String @id @default(uuid())
+  reason String
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
